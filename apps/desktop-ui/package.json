@@ -1,0 +1,55 @@
+{
+  "name": "desktop-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "electron:dev": "node electron/dev.mjs",
+    "electron:build": "npm run build && electron-builder --win nsis portable",
+    "electron:dir": "npm run build && electron-builder --win dir",
+    "electron:pack": "npm run build && electron-packager . \"Kube Explorer\" --platform=win32 --arch=x64 --out=release\\packaged --overwrite --prune=true --ignore=\"^/release$\" --ignore=\"^/src$\""
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.4.0",
+    "@electron/packager": "^18.3.6",
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  },
+  "build": {
+    "appId": "com.kubeexplorer.desktopui",
+    "productName": "Kube Explorer",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "artifactName": "KubeExplorer-${version}-${target}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    }
+  }
+}

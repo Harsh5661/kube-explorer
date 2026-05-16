@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/electron.d.ts","./src/main.tsx","./src/components/clustersidebar.tsx","./src/components/fileproperties.tsx","./src/components/icon.tsx","./src/components/previewcode.tsx","./src/data/mockdata.ts"],"version":"5.9.3"}

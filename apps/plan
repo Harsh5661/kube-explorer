@@ -1,0 +1,614 @@
+# KubeExplorer — Engineering Plan
+
+## Project Overview
+
+KubeExplorer is a desktop application for browsing and managing Kubernetes pod filesystems visually, similar to Windows File Explorer.
+
+The application should allow users to:
+
+* Browse Kubernetes clusters
+* Browse namespaces
+* Browse pods and containers
+* Explore container filesystems
+* Upload/download files
+* Drag & drop files
+* Edit/view files
+* Open interactive terminal sessions
+* Stream logs
+* Work with multiple clusters
+
+The UX goal is:
+
+> “Windows Explorer for Kubernetes”
+
+---
+
+# Primary Goal
+
+Replace workflows like:
+
+```bash
+kubectl exec -it pod -- sh
+kubectl cp
+kubectl logs -f
+```
+
+with a modern visual interface.
+
+---
+
+# Product Scope
+
+## Core Features
+
+### Cluster Explorer
+
+* Multi-cluster support
+* Namespace browser
+* Pod browser
+* Container browser
+
+### Filesystem Explorer
+
+* Tree-based folder navigation
+* Breadcrumbs
+* File metadata
+* Lazy loading directories
+
+### File Operations
+
+* Upload files
+* Download files
+* Delete files
+* Rename files
+* Create folders
+
+### File Viewer
+
+* Open text files
+* Open YAML/JSON/logs
+* Image preview
+* Syntax highlighting
+
+### Editor
+
+* Monaco editor integration
+* Save changes back to container
+
+### Terminal
+
+* Interactive shell
+* Multiple tabs
+* Resize support
+
+### Logs
+
+* Live streaming logs
+* Search logs
+* Pause/resume logs
+
+---
+
+# Tech Stack
+
+| Layer             | Technology         |
+| ----------------- | ------------------ |
+| Desktop Framework | Tauri              |
+| Frontend          | React + TypeScript |
+| Styling           | Tailwind CSS       |
+| UI Components     | shadcn/ui          |
+| State Management  | Zustand            |
+| API Cache         | TanStack Query     |
+| Editor            | Monaco Editor      |
+| Terminal          | xterm.js           |
+| Drag & Drop       | dnd-kit            |
+| Backend           | Go                 |
+| Kubernetes SDK    | client-go          |
+| HTTP Router       | chi                |
+| WebSocket         | gorilla/websocket  |
+| Logging           | zap                |
+| Config            | viper              |
+
+---
+
+# High-Level Architecture
+
+```txt
+React UI
+   ↓
+Tauri Layer
+   ↓
+Go Backend Engine
+   ↓
+Kubernetes API (client-go)
+```
+
+---
+
+# Architectural Principles
+
+## 1. Frontend Should Be Thin
+
+Frontend responsibilities:
+
+* UI rendering
+* user interaction
+* state management
+
+Frontend must NOT:
+
+* communicate directly with Kubernetes
+* contain cluster logic
+
+All Kubernetes interactions happen in Go backend.
+
+---
+
+## 2. Backend API Layer
+
+Frontend communicates with backend using:
+
+### REST APIs
+
+For:
+
+* listing resources
+* fetching metadata
+* file operations
+
+### WebSockets
+
+For:
+
+* terminal streams
+* log streams
+* transfer progress
+* live updates
+
+---
+
+## 3. Filesystem-First UX
+
+This is NOT a Kubernetes dashboard.
+
+Primary focus:
+
+* filesystem browsing
+* transfers
+* debugging
+* terminal workflows
+
+Avoid becoming another Lens clone.
+
+---
+
+## 4. Lazy Loading
+
+Never recursively load full filesystems.
+
+Use:
+
+* on-demand loading
+* virtualized rendering
+* paginated operations
+
+---
+
+# Project Structure
+
+```txt
+kube-explorer/
+│
+├── apps/
+│   ├── desktop-ui/
+│   └── kube-engine/
+│
+├── packages/
+│   ├── shared-types/
+│   └── websocket-protocol/
+│
+├── docs/
+│
+├── scripts/
+│
+└── PLAN.md
+```
+
+---
+
+# Frontend Responsibilities
+
+## Explorer Panel
+
+* clusters
+* namespaces
+* pods
+* containers
+* filesystem tree
+
+## Editor Panel
+
+* Monaco editor
+* tabs
+* syntax highlighting
+* image preview
+
+## Bottom Panel
+
+* terminal
+* logs
+* transfers
+
+## Global UI
+
+* command palette
+* settings
+* themes
+* notifications
+
+---
+
+# Backend Responsibilities
+
+## Kubernetes Connectivity
+
+* kubeconfig parsing
+* cluster authentication
+* context switching
+* namespace discovery
+
+## Pod Operations
+
+* exec sessions
+* logs streaming
+* file access
+
+## File Operations
+
+* upload
+* download
+* delete
+* rename
+* create folder
+
+## Streaming
+
+* websocket multiplexing
+* terminal streams
+* transfer progress
+
+---
+
+# Backend API Design
+
+# REST APIs
+
+## Clusters
+
+```http
+GET /api/clusters
+```
+
+## Namespaces
+
+```http
+GET /api/namespaces?clusterId=xxx
+```
+
+## Pods
+
+```http
+GET /api/pods?namespace=default
+```
+
+## Containers
+
+```http
+GET /api/containers?pod=nginx
+```
+
+## Files
+
+```http
+GET /api/files?path=/app
+```
+
+## Download File
+
+```http
+GET /api/download?path=/app/file.txt
+```
+
+## Upload File
+
+```http
+POST /api/upload
+```
+
+## Delete File
+
+```http
+DELETE /api/file?path=/tmp/test.txt
+```
+
+---
+
+# WebSocket Endpoints
+
+## Terminal
+
+```txt
+WS /ws/terminal
+```
+
+### Events
+
+* stdin
+* stdout
+* stderr
+* resize
+* disconnect
+
+---
+
+## Logs
+
+```txt
+WS /ws/logs
+```
+
+### Events
+
+* log_line
+* reconnect
+* end
+
+---
+
+## Transfers
+
+```txt
+WS /ws/transfers
+```
+
+### Events
+
+* progress
+* completed
+* failed
+
+---
+
+# File Upload Strategy
+
+Kubernetes does not provide a native upload API.
+
+Uploads will work similarly to:
+
+```bash
+kubectl cp
+```
+
+Implementation:
+
+* tar stream locally
+* exec into container
+* untar remotely
+
+---
+
+# File Download Strategy
+
+Implementation:
+
+* tar inside container
+* stream archive
+* extract locally
+
+---
+
+# Terminal Implementation
+
+Use:
+
+* xterm.js
+* websocket bridge
+* SPDY executor from client-go
+
+Go implementation:
+
+```go
+remotecommand.NewSPDYExecutor(...)
+```
+
+Features:
+
+* stdin
+* stdout
+* stderr
+* terminal resizing
+
+---
+
+# Security Considerations
+
+## MVP
+
+Minimal security controls.
+
+## Future
+
+* RBAC awareness
+* read-only mode
+* namespace restrictions
+* audit logging
+* secret masking
+
+---
+
+# Performance Considerations
+
+## Filesystem
+
+* lazy loading
+* virtualized trees
+* avoid recursive scans
+
+## Logs
+
+* stream buffering
+* truncation
+* virtualization
+
+## Transfers
+
+* chunked uploads
+* cancellation support
+* progress tracking
+
+---
+
+# Development Phases
+
+# Phase 1 — Foundation
+
+## Deliverables
+
+* monorepo setup
+* Tauri setup
+* React app
+* Go backend
+* websocket server
+
+---
+
+# Phase 2 — Kubernetes Connectivity
+
+## Deliverables
+
+* kubeconfig parsing
+* cluster connection
+* namespace listing
+* pod listing
+
+---
+
+# Phase 3 — Filesystem Explorer
+
+## Deliverables
+
+* folder browsing
+* breadcrumbs
+* file listing
+* lazy loading
+
+---
+
+# Phase 4 — Terminal
+
+## Deliverables
+
+* xterm.js integration
+* interactive shell
+* websocket streaming
+
+---
+
+# Phase 5 — File Transfers
+
+## Deliverables
+
+* upload files
+* download files
+* drag/drop support
+* progress UI
+
+---
+
+# Phase 6 — File Editor
+
+## Deliverables
+
+* Monaco integration
+* syntax highlighting
+* save support
+
+---
+
+# Phase 7 — Polish
+
+## Deliverables
+
+* themes
+* tabs
+* reconnect handling
+* transfer queue
+* search
+
+---
+
+# Risks
+
+## Kubernetes Streaming Complexity
+
+Most difficult engineering area.
+
+## File Transfer Reliability
+
+Need retry and cleanup handling.
+
+## Cloud Authentication
+
+Need support for:
+
+* EKS
+* GKE
+* AKS
+
+---
+
+# Future Enhancements
+
+## Sync Mode
+
+Local folder ↔ pod sync
+
+## Diff Viewer
+
+Compare:
+
+* local vs pod
+* pod vs pod
+
+## Search Across Pods
+
+Cluster-wide file search
+
+## Remote Agent
+
+Optional helper daemon inside cluster
+
+## VS Code Extension
+
+Reuse backend APIs
+
+---
+
+# Success Criteria
+
+The application should allow developers to:
+
+* browse pod files visually
+* drag/drop files
+* edit files directly
+* debug faster
+* reduce terminal dependency
+
+The application should feel:
+
+* lightweight
+* fast
+* native
+* filesystem-focused
+
+NOT like a generic Kubernetes dashboard.
