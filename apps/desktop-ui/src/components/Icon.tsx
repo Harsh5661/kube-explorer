@@ -4,6 +4,7 @@ export type IconName =
   | "arrow-up-left"
   | "boxes"
   | "cluster"
+  | "cloud"
   | "download"
   | "folder"
   | "folder-plus"
@@ -13,11 +14,13 @@ export type IconName =
   | "maximize"
   | "minimize"
   | "more"
+  | "namespace"
   | "refresh"
   | "search"
   | "sliders"
   | "terminal"
   | "trash"
+  | "transfer"
   | "upload"
   | "x"
   | "plus"
@@ -44,6 +47,9 @@ export function Icon({
     cluster: (
       <path d="M12 2 4 6.5v11L12 22l8-4.5v-11L12 2Zm0 2.3 5.8 3.2L12 10.7 6.2 7.5 12 4.3Zm-6 5 5 2.8v6L6 15.3v-6Zm7 8.8v-6l5-2.8v6l-5 2.8Z" />
     ),
+    cloud: (
+      <path d="M7.5 19a5.5 5.5 0 0 1-.7-10.96A6.5 6.5 0 0 1 19.25 10.5H20a4.5 4.5 0 0 1 0 9H7.5Zm0-2H20a2.5 2.5 0 0 0 0-5h-2.3l-.3-1.23a4.5 4.5 0 0 0-8.86.15l-.2 1.35-1.35-.18A3.5 3.5 0 0 0 7.5 17Z" />
+    ),
     download: (
       <path d="M11 4h2v8.17l2.59-2.58L17 11l-5 5-5-5 1.41-1.41L11 12.17V4Zm-6 14h14v2H5v-2Z" />
     ),
@@ -61,6 +67,9 @@ export function Icon({
     maximize: <path d="M7 7h10v10H7V7Zm1.5 1.5v7h7v-7h-7Z" />,
     minimize: <path d="M6 12h12v2H6v-2Z" />,
     more: <path d="M6 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm6 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />,
+    namespace: (
+      <path d="M5 5h14v14H5V5Zm2 2v10h10V7H7Zm2 2h6v6H9V9Zm2 2v2h2v-2h-2Z" />
+    ),
     refresh: (
       <path d="M17.65 6.35A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.35 2.35Z" />
     ),
@@ -75,6 +84,9 @@ export function Icon({
     ),
     trash: (
       <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Zm-1 10h12l-1 2H7l-1-2Z" />
+    ),
+    transfer: (
+      <path d="M5 7h11.17l-2.58-2.59L15 3l5 5-5 5-1.41-1.41L16.17 9H5V7Zm14 10H7.83l2.58 2.59L9 21l-5-5 5-5 1.41 1.41L7.83 15H19v2Z" />
     ),
     upload: (
       <path d="M11 20h2v-8.17l2.59 2.58L17 13l-5-5-5 5 1.41 1.41L11 11.83V20ZM5 4h14v2H5V4Z" />

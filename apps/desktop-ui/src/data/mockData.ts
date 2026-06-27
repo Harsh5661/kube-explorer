@@ -44,9 +44,9 @@ export type ClusterTree = {
 };
 
 export const appLocation = {
-  cluster: "production-cluster",
+  cluster: "production",
   namespace: "payments",
-  pod: "payments-api-7d4f9c6c8b-8k2lg",
+  pod: "payments-api-7d4f",
   container: "app-container",
   path: "/app",
 };
@@ -54,36 +54,21 @@ export const appLocation = {
 export const clusterTree: ClusterTree[] = [
   {
     id: "cluster-prod",
-    name: "production-cluster",
+    name: "production",
     status: "connected",
     namespaces: [
-      {
-        id: "ns-default",
-        name: "default",
-        pods: [],
-      },
-      {
-        id: "ns-kube-system",
-        name: "kube-system",
-        pods: [],
-      },
-      {
-        id: "ns-monitoring",
-        name: "monitoring",
-        pods: [],
-      },
       {
         id: "ns-payments",
         name: "payments",
         pods: [
           {
             id: "pod-api",
-            name: "payments-api-7d4f9c6c8b-8k2lg",
+            name: "payments-api-7d4f",
             containers: ["app-container"],
           },
           {
             id: "pod-worker",
-            name: "payments-worker-5f4d7c8d9f-2xj8t",
+            name: "payments-w-5f4d",
             containers: ["worker-container"],
           },
           {
@@ -98,21 +83,11 @@ export const clusterTree: ClusterTree[] = [
           },
         ],
       },
-      {
-        id: "ns-staging",
-        name: "staging",
-        pods: [],
-      },
-      {
-        id: "ns-dev",
-        name: "dev",
-        pods: [],
-      },
     ],
   },
   {
     id: "cluster-stage",
-    name: "staging-cluster",
+    name: "staging",
     status: "warning",
     namespaces: [],
   },
@@ -329,9 +304,9 @@ app.listen(port, () => {
 ];
 
 export const terminalOutput = [
-  "Connected to payments-api-7d4f9c6c8b-8k2lg (app-container)",
+  "Connected to payments-api-7d4f (app-container)",
   "",
-  "root@payments-api-7d4f9c6c8b-8k2lg:/app# ls -la",
+  "root@payments-api-7d4f:/app# ls -la",
   "total 80",
   "drwxr-xr-x 1 root root 4096 May 20 10:34 .",
   "drwxr-xr-x 1 root root 4096 May 18 09:15 ..",
@@ -343,7 +318,7 @@ export const terminalOutput = [
   "drwxr-xr-x 1 root root 4096 May 20 09:15 public",
   "drwxr-xr-x 1 root root 4096 May 20 10:33 tmp",
   "drwxr-xr-x 1 root root 4096 May 20 09:15 vendor",
-  "root@payments-api-7d4f9c6c8b-8k2lg:/app#",
+  "root@payments-api-7d4f:/app#",
 ];
 
 export const logOutput = [
@@ -386,13 +361,13 @@ export const bookmarks = [
 export const connections: ConnectionEntry[] = [
   {
     id: "connection-prod",
-    name: "production-cluster",
+    name: "production",
     account: "arn:aws:eks:us-east-1:123456789012:cluster/prod",
     user: "aws-iam-authenticator",
   },
   {
     id: "connection-stage",
-    name: "staging-cluster",
+    name: "staging",
     account: "arn:aws:eks:us-east-1:123456789012:cluster/staging",
     user: "aws-iam-authenticator",
   },
@@ -406,7 +381,7 @@ export const connections: ConnectionEntry[] = [
 
 export const statusBar = {
   namespace: "payments",
-  pod: "payments-api-7d4f9c6c8b-8k2lg",
+  pod: "payments-api-7d4f",
   container: "app-container",
   user: "aws-iam-authenticator",
   version: "v1.0.0",

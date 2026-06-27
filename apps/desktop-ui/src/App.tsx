@@ -1,12 +1,6 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ClusterSidebar, type SidebarTab } from "./components/ClusterSidebar";
-import { FileProperties } from "./components/FileProperties";
 import { Icon, type IconName } from "./components/Icon";
-import {
-  PreviewCode,
-  getPreviewFooterLabel,
-  getPreviewLanguage,
-} from "./components/PreviewCode";
 import {
   appLocation,
   bookmarks,
@@ -14,36 +8,17 @@ import {
   connections,
   files,
   logOutput,
-  statusBar,
   terminalOutput,
   transfers,
 } from "./data/mockData";
 
-type BottomTab = "terminal" | "logs";
-type UtilityTab = "transfers" | "bookmarks";
-type PreviewTab = "preview" | "properties";
-type DragState =
-  | {
-      type: "sidebar" | "preview" | "utility";
-      startX: number;
-      startSize: number;
-    }
-  | {
-      type: "bottom";
-      startY: number;
-      startSize: number;
-    };
+type BottomTab = "terminal" | "logs" | "transfers";
 
-const menuItems = ["File", "View", "Tools", "Help"];
-const toolbarActions: { id: string; label: string; icon: IconName }[] = [
-  { id: "up", label: "Up", icon: "arrow-up-left" },
-  { id: "refresh", label: "Refresh", icon: "refresh" },
-  { id: "folder", label: "New Folder", icon: "folder-plus" },
-  { id: "upload", label: "Upload", icon: "upload" },
-  { id: "download", label: "Download", icon: "download" },
-  { id: "delete", label: "Delete", icon: "trash" },
-  { id: "terminal", label: "Terminal", icon: "terminal" },
-  { id: "more", label: "More", icon: "more" },
+const toolbarActions: { id: string; icon: IconName; label: string }[] = [
+  { id: "upload", icon: "upload", label: "Upload" },
+  { id: "download", icon: "download", label: "Download" },
+  { id: "sliders", icon: "sliders", label: "Options" },
+  { id: "refresh", icon: "refresh", label: "Refresh" },
 ];
 
 const railItems: { id: SidebarTab; icon: IconName; label: string }[] = [
@@ -55,21 +30,11 @@ const railItems: { id: SidebarTab; icon: IconName; label: string }[] = [
 ];
 
 function App() {
-  const desktopWindow = window.kubeExplorerDesktop?.window;
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("clusters");
   const [bottomTab, setBottomTab] = useState<BottomTab>("terminal");
-  const [utilityTab, setUtilityTab] = useState<UtilityTab>("transfers");
-  const [previewTab, setPreviewTab] = useState<PreviewTab>("preview");
   const [query, setQuery] = useState("");
   const [currentPath, setCurrentPath] = useState(appLocation.path);
   const [selectedFileId, setSelectedFileId] = useState("logs");
-  const [previewFileId, setPreviewFileId] = useState("server-js");
-  const [sidebarWidth, setSidebarWidth] = useState(330);
-  const [previewWidth, setPreviewWidth] = useState(430);
-  const [utilityWidth, setUtilityWidth] = useState(390);
-  const [bottomHeight, setBottomHeight] = useState(292);
-  const [dragState, setDragState] = useState<DragState | null>(null);
-  const [isWindowMaximized, setIsWindowMaximized] = useState(false);
   const [logPaused, setLogPaused] = useState(false);
   const [terminalLines, setTerminalLines] = useState(terminalOutput);
   const [logLines, setLogLines] = useState(logOutput);
@@ -85,78 +50,14 @@ function App() {
   const filteredFiles = useMemo(
     () =>
       normalizedQuery
-        ? files.filter((entry) =>
-            entry.name.toLowerCase().includes(normalizedQuery),
-          )
+        ? files.filter((entry) => entry.name.toLowerCase().includes(normalizedQuery))
         : files,
     [normalizedQuery],
   );
 
-  const selectedFile = files.find((entry) => entry.id === selectedFileId) ?? files[0];
-  const previewFile = files.find((entry) => entry.id === previewFileId) ?? selectedFile;
-  const previewLanguage = getPreviewLanguage(previewFile.name);
-  const previewFooterLabel = getPreviewFooterLabel(previewLanguage);
   const selectedExplorer = resolveExplorerSelection(selectedLocation);
   const activeConnection =
     connections.find((entry) => entry.name === selectedExplorer.cluster) ?? connections[0];
-  const shellStyle = {
-    "--sidebar-width": `${sidebarWidth}px`,
-    "--preview-width": `${previewWidth}px`,
-    "--utility-width": `${utilityWidth}px`,
-    "--bottom-height": `${bottomHeight}px`,
-  } as CSSProperties;
-
-  useEffect(() => {
-    if (!dragState) {
-      return undefined;
-    }
-
-    const currentDrag = dragState;
-
-    function handlePointerMove(event: PointerEvent) {
-      if (currentDrag.type === "sidebar") {
-        setSidebarWidth(clamp(currentDrag.startSize + event.clientX - currentDrag.startX, 260, 420));
-        return;
-      }
-
-      if (currentDrag.type === "preview") {
-        setPreviewWidth(clamp(currentDrag.startSize - (event.clientX - currentDrag.startX), 320, 620));
-        return;
-      }
-
-      if (currentDrag.type === "utility") {
-        setUtilityWidth(clamp(currentDrag.startSize - (event.clientX - currentDrag.startX), 280, 520));
-        return;
-      }
-
-      if (currentDrag.type === "bottom") {
-        setBottomHeight(
-          clamp(currentDrag.startSize - (event.clientY - currentDrag.startY), 180, 420),
-        );
-      }
-    }
-
-    function handlePointerUp() {
-      setDragState(null);
-    }
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-  }, [dragState]);
-
-  useEffect(() => {
-    if (!desktopWindow) {
-      return undefined;
-    }
-
-    void desktopWindow.isMaximized().then(setIsWindowMaximized);
-    return desktopWindow.onMaximizedChanged(setIsWindowMaximized);
-  }, [desktopWindow]);
 
   useEffect(() => {
     if (logPaused) {
@@ -164,10 +65,10 @@ function App() {
     }
 
     const streamLines = [
-      "[11:16:34] INFO Outbound settlement batch queued id=st_842",
+      "[11:16:34] INFO queued settlement batch id=st_842",
       "[11:16:38] INFO /payments/refund completed in 18ms",
-      "[11:16:41] WARN Slow dependency response from fraud-checker",
-      "[11:16:45] INFO Cache refresh completed for merchant dashboard",
+      "[11:16:41] WARN fraud-checker response exceeded 250ms",
+      "[11:16:45] INFO cache refresh completed for dashboard",
     ];
 
     const timer = window.setInterval(() => {
@@ -187,86 +88,28 @@ function App() {
 
     if (entry.kind === "parent") {
       setCurrentPath(getParentPath(currentPath));
-      setPreviewTab("properties");
       return;
     }
 
     setSelectedFileId(fileId);
-    setPreviewFileId(fileId);
 
     if (entry.kind === "folder") {
       setCurrentPath(joinPath(currentPath, entry.name));
-      setPreviewTab("properties");
-      return;
     }
-
-    setPreviewTab(entry.kind === "file" ? "preview" : "properties");
   }
 
   function handleToolbarAction(actionId: string) {
-    if (actionId === "up") {
-      setCurrentPath(getParentPath(currentPath));
-      return;
-    }
-
-    if (actionId === "terminal") {
-      setBottomTab("terminal");
-      setTerminalLines((current) => [...current, "", `root@${selectedExplorer.pod}:${currentPath}#`]);
+    if (actionId === "refresh") {
+      setTerminalLines((current) => [
+        ...current,
+        "",
+        `root@${selectedExplorer.pod}:${currentPath}# ls -la`,
+      ]);
     }
   }
 
   return (
-    <div
-      className={`shell ${dragState ? "is-resizing" : ""} ${
-        desktopWindow ? "shell--desktop" : ""
-      }`}
-      style={shellStyle}
-    >
-      <div className="titlebar">
-        <div className="titlebar__brand">
-          <div className="brand__mark">
-            <Icon name="cluster" />
-          </div>
-          <span>Kube Explorer</span>
-        </div>
-        <div className="titlebar__window">
-          <button
-            className="window-button"
-            type="button"
-            onClick={() => void desktopWindow?.minimize()}
-          >
-            <Icon name="minimize" />
-          </button>
-          <button
-            className="window-button"
-            type="button"
-            onClick={async () => {
-              const maximized = await desktopWindow?.toggleMaximize();
-              if (typeof maximized === "boolean") {
-                setIsWindowMaximized(maximized);
-              }
-            }}
-          >
-            <Icon name={isWindowMaximized ? "collapse" : "maximize"} />
-          </button>
-          <button
-            className="window-button window-button--close"
-            type="button"
-            onClick={() => void desktopWindow?.close()}
-          >
-            <Icon name="x" />
-          </button>
-        </div>
-      </div>
-
-      <div className="menubar">
-        {menuItems.map((item) => (
-          <button key={item} className="menubar__item" type="button">
-            {item}
-          </button>
-        ))}
-      </div>
-
+    <div className="shell">
       <div className="workspace">
         <ClusterSidebar
           sidebarTab={sidebarTab}
@@ -281,40 +124,19 @@ function App() {
           onSelectLocation={(value) => {
             setSelectedLocation(value);
             setCurrentPath(appLocation.path);
-          }}
-        />
-        <div
-          className="resize-handle resize-handle--vertical resize-handle--sidebar"
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize sidebar"
-          onPointerDown={(event) => {
-            event.preventDefault();
-            setDragState({
-              type: "sidebar",
-              startX: event.clientX,
-              startSize: sidebarWidth,
-            });
+            setTerminalLines((current) => [
+              ...current,
+              "",
+              `Connected to ${resolveExplorerSelection(value).pod} (${value.container})`,
+            ]);
           }}
         />
 
         <main className="content">
-          <div className="content__topbar">
-            <div className="breadcrumbs">
-              {[
-                selectedExplorer.cluster,
-                selectedExplorer.namespace,
-                selectedExplorer.pod,
-                selectedExplorer.container,
-                currentPath,
-              ].map((segment, index, items) => (
-                <span key={segment} className="breadcrumbs__item">
-                  <span>{segment}</span>
-                  {index < items.length - 1 && (
-                    <span className="breadcrumbs__separator">&gt;</span>
-                  )}
-                </span>
-              ))}
+          <header className="content__topbar">
+            <div className="pathbar">
+              <span>{selectedExplorer.container}</span>
+              <strong>{currentPath}</strong>
             </div>
 
             <label className="searchbox">
@@ -326,387 +148,203 @@ function App() {
               />
               <Icon name="search" />
             </label>
-          </div>
 
-          <div className="toolbar">
-            {toolbarActions.map((action) => (
-              <button
-                key={action.id}
-                className="toolbar__action"
-                type="button"
-                onClick={() => handleToolbarAction(action.id)}
-              >
-                <Icon name={action.icon} />
-                <span>{action.label}</span>
-              </button>
-            ))}
-          </div>
+            <div className="toolbar">
+              {toolbarActions.map((action) => (
+                <button
+                  key={action.id}
+                  className="toolbar__action"
+                  type="button"
+                  title={action.label}
+                  onClick={() => handleToolbarAction(action.id)}
+                >
+                  <Icon name={action.icon} />
+                </button>
+              ))}
+            </div>
+          </header>
 
-          <div className="explorer">
-            <section className="file-table">
-              <header className="file-table__header">
-                <span>Name</span>
-                <span>Size</span>
-                <span>Type</span>
-                <span>Modified</span>
-                <span>Permissions</span>
-                <span>Owner</span>
-              </header>
+          <section className="file-table">
+            <header className="file-table__header">
+              <span>Name</span>
+              <span>Size</span>
+              <span>Modified</span>
+            </header>
 
-              <div className="file-table__body">
-                {filteredFiles.length > 0 ? (
-                  filteredFiles.map((entry) => (
-                    <button
-                      key={entry.id}
-                      className={`file-row ${selectedFileId === entry.id ? "is-selected" : ""}`}
-                      type="button"
-                      onClick={() => handleFileSelect(entry.id)}
-                    >
+            <div className="file-table__body">
+              {filteredFiles.length > 0 ? (
+                filteredFiles.map((entry) => (
+                  <button
+                    key={entry.id}
+                    className={`file-row ${selectedFileId === entry.id ? "is-selected" : ""} ${
+                      entry.kind === "parent" ? "is-muted" : ""
+                    }`}
+                    type="button"
+                    onClick={() => handleFileSelect(entry.id)}
+                  >
                     <div className="file-cell file-cell--name">
                       <Icon
                         className={`resource-icon ${
-                          entry.kind === "file"
-                            ? "resource-icon--file"
-                            : "resource-icon--folder"
+                          entry.kind === "file" ? "resource-icon--file" : "resource-icon--folder"
                         }`}
-                        name={
-                          entry.kind === "folder" || entry.kind === "parent"
-                            ? "folder"
-                              : "file"
-                          }
-                        />
-                        <span>{entry.name}</span>
-                      </div>
-                      <span className="file-cell">{entry.size}</span>
-                      <span className="file-cell">{entry.type}</span>
-                      <span className="file-cell">{entry.modified}</span>
-                      <span className="file-cell">{entry.permissions}</span>
-                      <span className="file-cell">{entry.owner}</span>
-                    </button>
-                  ))
-                ) : (
-                  <div className="file-table__empty">
-                    <div className="file-table__empty-icon">
-                      <Icon name="search" />
+                        name={entry.kind === "folder" || entry.kind === "parent" ? "folder" : "file"}
+                      />
+                      <span>{entry.name}</span>
                     </div>
-                    <h3>No files match "{query}"</h3>
-                    <p>Try a broader search or clear the filter to see the full container directory.</p>
+                    <span className="file-cell">{entry.kind === "folder" ? "-" : entry.size}</span>
+                    <span className="file-cell">{formatModified(entry.modified)}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="file-table__empty">
+                  <div className="file-table__empty-icon">
+                    <Icon name="search" />
                   </div>
-                )}
-              </div>
-            </section>
-            <div
-              className="resize-handle resize-handle--vertical"
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="Resize preview pane"
-              onPointerDown={(event) => {
-                event.preventDefault();
-                setDragState({
-                  type: "preview",
-                  startX: event.clientX,
-                  startSize: previewWidth,
-                });
-              }}
-            />
+                  <h3>No files match "{query}"</h3>
+                  <p>Clear the search to return to the container directory.</p>
+                </div>
+              )}
+            </div>
+          </section>
 
-            <aside className="preview">
-              <div className="preview__tabs">
+          <section className="panel panel--terminal">
+            <div className="panel__header">
+              <div className="panel-tabs">
                 <button
-                  className={`preview__tab ${previewTab === "preview" ? "preview__tab--active" : ""}`}
+                  className={`panel-tab ${bottomTab === "terminal" ? "is-active" : ""}`}
                   type="button"
-                  onClick={() => setPreviewTab("preview")}
+                  onClick={() => setBottomTab("terminal")}
                 >
-                  Preview
+                  <Icon name="terminal" />
+                  <span>Terminal</span>
+                  <Icon name="x" className="panel-tab__close" />
                 </button>
                 <button
-                  className={`preview__tab ${previewTab === "properties" ? "preview__tab--active" : ""}`}
+                  className={`panel-tab ${bottomTab === "logs" ? "is-active" : ""}`}
                   type="button"
-                  onClick={() => setPreviewTab("properties")}
+                  onClick={() => setBottomTab("logs")}
                 >
-                  Properties
+                  <Icon name="file" />
+                  <span>Logs</span>
+                  <Icon name="x" className="panel-tab__close" />
+                </button>
+                <button
+                  className={`panel-tab ${bottomTab === "transfers" ? "is-active" : ""}`}
+                  type="button"
+                  onClick={() => setBottomTab("transfers")}
+                >
+                  <Icon name="transfer" />
+                  <span>Transfers</span>
+                  <span className="panel-tab__badge">{transfers.length}</span>
+                  <Icon name="x" className="panel-tab__close" />
+                </button>
+                <button className="panel-tab panel-tab--add" type="button" title="New tab">
+                  <Icon name="plus" />
                 </button>
               </div>
 
-              <div className="preview__content">
-                <div className="preview__meta">
-                  <span className="preview__chip">{previewFile.name}</span>
-                  <span className="preview__chip preview__chip--muted">
-                    {previewFile.type || "Folder"}
-                  </span>
-                  <span className="preview__chip preview__chip--muted">
-                    {currentPath}
-                  </span>
-                </div>
-                {previewTab === "preview" ? (
-                  <PreviewCode
-                    fileName={previewFile.name}
-                    language={previewLanguage}
-                    source={previewFile.preview}
-                  />
-                ) : (
-                  <FileProperties
-                    entry={previewFile}
-                    currentPath={currentPath}
-                    context={selectedExplorer}
-                  />
-                )}
-                <div className="preview__footer">
-                  <span>Line 1, Column 1</span>
-                  <span>UTF-8</span>
-                  <span>{previewTab === "preview" ? previewFooterLabel : "Metadata"}</span>
-                </div>
-              </div>
-            </aside>
-          </div>
-          <div
-            className="resize-handle resize-handle--horizontal"
-            role="separator"
-            aria-orientation="horizontal"
-            aria-label="Resize bottom panel"
-            onPointerDown={(event) => {
-              event.preventDefault();
-              setDragState({
-                type: "bottom",
-                startY: event.clientY,
-                startSize: bottomHeight,
-              });
-            }}
-          />
+              <div className="panel__actions">
+                <button className="icon-button icon-button--quiet" type="button" title="Split">
+                  <Icon name="collapse" />
+                </button>
+                <button className="icon-button icon-button--quiet" type="button" title="Maximize">
+                  <Icon name="maximize" />
+                </button>
+                <button
+                  className="icon-button icon-button--quiet"
+                  type="button"
+                  title={bottomTab === "logs" ? "Pause logs" : "Clear"}
+                  onClick={() => {
+                    if (bottomTab === "logs") {
+                      setLogPaused((current) => !current);
+                      return;
+                    }
 
-          <div className="panels">
-            <section className="panel panel--terminal">
-              <div className="panel__header">
-                <div className="panel-tabs">
-                  <button
-                    className={`panel-tab ${bottomTab === "terminal" ? "is-active" : ""}`}
-                    type="button"
-                    onClick={() => setBottomTab("terminal")}
-                  >
-                    Terminal
-                  </button>
-                  <button
-                    className={`panel-tab ${bottomTab === "logs" ? "is-active" : ""}`}
-                    type="button"
-                    onClick={() => setBottomTab("logs")}
-                  >
-                    Logs
-                  </button>
-                </div>
-
-                <div className="panel__actions">
-                  <button
-                    className="icon-button"
-                    type="button"
-                    title={bottomTab === "logs" ? (logPaused ? "Resume logs" : "Pause logs") : "New prompt"}
-                    onClick={() => {
-                      if (bottomTab === "logs") {
-                        setLogPaused((current) => !current);
-                        return;
-                      }
-
-                      setTerminalLines((current) => [
-                        ...current,
-                        "",
-                        `root@${selectedExplorer.pod}:${currentPath}# echo "new session"`,
-                        "new session",
-                        `root@${selectedExplorer.pod}:${currentPath}#`,
-                      ]);
-                    }}
-                  >
-                    <Icon name="plus" />
-                  </button>
-                  <button
-                    className="icon-button"
-                    type="button"
-                    title={bottomTab === "logs" ? "Clear logs" : "Clear terminal"}
-                    onClick={() => {
-                      if (bottomTab === "logs") {
-                        setLogLines([]);
-                        return;
-                      }
-
+                    if (bottomTab === "terminal") {
                       setTerminalLines([`root@${selectedExplorer.pod}:${currentPath}#`]);
-                    }}
-                  >
-                    <Icon name="collapse" />
-                  </button>
-                  <button
-                    className="icon-button"
-                    type="button"
-                    title="Copy visible output"
-                    onClick={() => {
-                      const output = (bottomTab === "terminal" ? terminalLines : logLines).join("\n");
-                      void navigator.clipboard?.writeText(output);
-                    }}
-                  >
-                    <Icon name="copy" />
-                  </button>
-                  <button
-                    className="icon-button"
-                    type="button"
-                    title={bottomTab === "logs" ? "Reset stream" : "Reconnect terminal"}
-                    onClick={() => {
-                      if (bottomTab === "logs") {
-                        setLogLines(logOutput);
-                        setLogPaused(false);
-                        return;
-                      }
-
-                      setTerminalLines(terminalOutput);
-                    }}
-                  >
-                    <Icon name="x" />
-                  </button>
-                </div>
+                    }
+                  }}
+                >
+                  <Icon name="x" />
+                </button>
               </div>
+            </div>
 
-              <div className="panel__subheader">
-                <span className="panel__badge">
-                  {bottomTab === "logs" ? (logPaused ? "Paused" : "Streaming") : "Connected"}
-                </span>
-                <span className="panel__hint">
-                  {bottomTab === "logs"
-                    ? "Mock log stream updating live"
-                    : `Interactive shell attached to ${selectedExplorer.container}`}
-                </span>
-              </div>
+            <div className="panel__subheader">
+              <span className="panel__prompt">{selectedExplorer.pod}:{currentPath}</span>
+              <span className="panel__badge">
+                <span className="status-dot status-dot--connected" />
+                connected
+              </span>
+            </div>
 
-              <div className={`terminal-view ${bottomTab === "logs" ? "is-log" : ""}`}>
-                {(bottomTab === "terminal" ? terminalLines : logLines).length > 0 ? (
-                  (bottomTab === "terminal" ? terminalLines : logLines).map(
-                    (line, index) => (
-                      <div key={`${line}-${index}`} className="terminal-line">
-                        {line}
-                      </div>
-                    ),
-                  )
-                ) : (
-                  <div className="terminal-empty">
-                    <div className="terminal-empty__title">
-                      {bottomTab === "logs" ? "No log lines visible" : "Terminal cleared"}
-                    </div>
-                    <div className="terminal-empty__hint">
-                      {bottomTab === "logs"
-                        ? "Resume or reset the stream to populate this panel."
-                        : "Create a new prompt from the action bar above."}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </section>
-            <div
-              className="resize-handle resize-handle--vertical"
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="Resize utility panel"
-              onPointerDown={(event) => {
-                event.preventDefault();
-                setDragState({
-                  type: "utility",
-                  startX: event.clientX,
-                  startSize: utilityWidth,
-                });
-              }}
-            />
-
-            <section className="panel panel--utility">
-              <div className="panel__header">
-                <div className="panel-tabs">
-                  <button
-                    className={`panel-tab ${utilityTab === "transfers" ? "is-active" : ""}`}
-                    type="button"
-                    onClick={() => setUtilityTab("transfers")}
-                  >
-                    Transfers
-                  </button>
-                  <button
-                    className={`panel-tab ${utilityTab === "bookmarks" ? "is-active" : ""}`}
-                    type="button"
-                    onClick={() => setUtilityTab("bookmarks")}
-                  >
-                    Bookmarks
-                  </button>
-                </div>
-              </div>
-
-              <div className="utility-content">
-                {utilityTab === "transfers" ? (
-                  transfers.map((transfer) => (
-                    <article key={transfer.id} className="transfer-card">
-                      <div className="transfer-card__header">
-                        <div className="transfer-card__title">
-                          <Icon name="file" className="resource-icon resource-icon--file" />
-                          <div>
-                            <h4>
-                              {transfer.direction} {transfer.fileName}
-                            </h4>
-                            <p>
-                              {transfer.source} -&gt; {transfer.target}
-                            </p>
-                          </div>
+            {bottomTab === "transfers" ? (
+              <div className="transfer-list">
+                {transfers.map((transfer) => (
+                  <article key={transfer.id} className="transfer-card">
+                    <div className="transfer-card__header">
+                      <div className="transfer-card__title">
+                        <Icon name="file" className="resource-icon resource-icon--file" />
+                        <div>
+                          <h4>
+                            {transfer.direction} {transfer.fileName}
+                          </h4>
+                          <p>
+                            {transfer.source} -&gt; {transfer.target}
+                          </p>
                         </div>
-                        <button className="icon-button" type="button">
-                          <Icon name="x" />
-                        </button>
                       </div>
-
-                      <div className="progress">
-                        <div
-                          className="progress__bar"
-                          style={{ width: `${transfer.progress}%` }}
-                        />
-                      </div>
-
-                      <div className="transfer-card__footer">
-                        <span>{transfer.transferred}</span>
-                        <span>{transfer.progress}%</span>
-                        <span>{transfer.speed}</span>
-                      </div>
-                    </article>
-                  ))
-                ) : (
-                  <div className="bookmark-list">
-                    {bookmarks.map((bookmark) => (
-                      <button
-                        key={bookmark}
-                        className="bookmark-row"
-                        type="button"
-                        onClick={() => setCurrentPath(bookmark)}
-                      >
-                        <Icon name="folder" className="resource-icon resource-icon--folder" />
-                        <span>{bookmark}</span>
+                      <button className="icon-button icon-button--quiet" type="button">
+                        <Icon name="x" />
                       </button>
-                    ))}
-                  </div>
-                )}
+                    </div>
+
+                    <div className="progress">
+                      <div className="progress__bar" style={{ width: `${transfer.progress}%` }} />
+                    </div>
+
+                    <div className="transfer-card__footer">
+                      <span>{transfer.transferred}</span>
+                      <span>{transfer.progress}%</span>
+                      <span>{transfer.speed}</span>
+                    </div>
+                  </article>
+                ))}
+
+                <div className="bookmark-list">
+                  {bookmarks.map((bookmark) => (
+                    <button
+                      key={bookmark}
+                      className="bookmark-row"
+                      type="button"
+                      onClick={() => setCurrentPath(bookmark)}
+                    >
+                      <Icon name="folder" className="resource-icon resource-icon--folder" />
+                      <span>{bookmark}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </section>
-          </div>
+            ) : (
+              <div className={`terminal-view ${bottomTab === "logs" ? "is-log" : ""}`}>
+                {(bottomTab === "terminal" ? terminalLines : logLines).map((line, index) => (
+                  <div key={`${line}-${index}`} className="terminal-line">
+                    {line}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <footer className="content__status">
+              <span>{selectedExplorer.namespace}</span>
+              <span>{selectedExplorer.container}</span>
+              <span>{activeConnection.user}</span>
+            </footer>
+          </section>
         </main>
       </div>
-
-      <footer className="statusbar">
-        <div className="statusbar__section">
-          <span className="status-dot status-dot--connected" />
-          <span>Connected</span>
-        </div>
-        <div className="statusbar__section">
-          <span>Namespace: {selectedExplorer.namespace}</span>
-          <span>Pod: {selectedExplorer.pod}</span>
-          <span>Container: {selectedExplorer.container}</span>
-          <span>User: {activeConnection.user}</span>
-        </div>
-        <div className="statusbar__section">
-          <span>{statusBar.version}</span>
-        </div>
-      </footer>
     </div>
   );
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
 }
 
 function resolveExplorerSelection(selection: {
@@ -748,6 +386,21 @@ function joinPath(basePath: string, segment: string) {
   }
 
   return `${basePath.replace(/\/$/, "")}/${segment}`;
+}
+
+function formatModified(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  const month = date.toLocaleString("en-US", { month: "short" });
+  const day = String(date.getDate()).padStart(2, " ");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${month} ${day} ${hours}:${minutes}`;
 }
 
 export default App;

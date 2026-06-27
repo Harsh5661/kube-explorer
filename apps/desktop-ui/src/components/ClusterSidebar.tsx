@@ -1,4 +1,4 @@
-import { useState, type Dispatch, type SetStateAction } from "react";
+import { useState } from "react";
 import type { ClusterTree, ConnectionEntry } from "../data/mockData";
 import { Icon, type IconName } from "./Icon";
 
@@ -13,7 +13,6 @@ export function ClusterSidebar({
   selectedClusterId,
   selectedNamespaceId,
   selectedPodId,
-  selectedContainer,
   onSelectLocation,
 }: {
   sidebarTab: SidebarTab;
@@ -38,230 +37,195 @@ export function ClusterSidebar({
   const [expandedNamespaces, setExpandedNamespaces] = useState<Record<string, boolean>>({
     "ns-payments": true,
   });
-  const [expandedPods, setExpandedPods] = useState<Record<string, boolean>>({
-    "pod-api": true,
-  });
+  const [podsOpen, setPodsOpen] = useState(true);
 
-  const activeTab = railItems.find((item) => item.id === sidebarTab);
+  const primaryCluster = clusterTree[0];
+  const secondaryCluster = clusterTree[1];
+  const activeConnection =
+    connections.find((connection) => connection.name === primaryCluster?.name) ?? connections[0];
 
-  function toggleExpanded(
-    setter: Dispatch<SetStateAction<Record<string, boolean>>>,
-    id: string,
-  ) {
-    setter((current) => ({
-      ...current,
-      [id]: !current[id],
-    }));
+  function toggleCluster(id: string) {
+    setExpandedClusters((current) => ({ ...current, [id]: !current[id] }));
+  }
+
+  function toggleNamespace(id: string) {
+    setExpandedNamespaces((current) => ({ ...current, [id]: !current[id] }));
   }
 
   return (
-    <>
-      <aside className="rail">
-        <div className="rail__group">
-          {railItems.map((item) => (
-            <button
-              key={item.id}
-              className={`rail__button ${sidebarTab === item.id ? "is-active" : ""}`}
-              type="button"
-              title={item.label}
-              onClick={() => onSidebarTabChange(item.id)}
-            >
-              <Icon name={item.icon} />
-            </button>
-          ))}
+    <aside className="sidebar">
+      <header className="sidebar__brand">
+        <div className="sidebar__product">
+          <Icon name="cluster" className="sidebar__brand-icon" />
+          <span>Kube Explorer</span>
         </div>
+        <button className="icon-button icon-button--quiet" type="button" title="More actions">
+          <Icon name="more" />
+        </button>
+      </header>
 
-        <div className="rail__group rail__group--bottom">
-          <button className="rail__button" type="button" title="Preferences">
-            <Icon name="sliders" />
-          </button>
-          <button className="rail__button" type="button" title="Settings">
-            <Icon name="gear" />
-          </button>
-        </div>
-      </aside>
+      <div className="sidebar__section">
+        <button className="sidebar__section-button" type="button">
+          <Icon name="chevron-down" />
+          <span>Clusters</span>
+        </button>
+      </div>
 
-      <section className="sidebar">
-        <div className="sidebar__header">
-          <span>{activeTab?.label ?? "Explorer"}</span>
-          <div className="sidebar__actions">
-            <button className="icon-button" type="button">
-              <Icon name="refresh" />
-            </button>
-            <button className="icon-button" type="button">
-              <Icon name="plus" />
-            </button>
+      <div className="sidebar__tree">
+        <div className="tree-block">
+          <div className="tree-row tree-row--provider">
+            <Icon name="chevron-down" className="tree-row__chevron" />
+            <Icon name="cloud" className="tree-row__provider-icon" />
+            <span className="tree-row__label">EKS</span>
           </div>
-        </div>
 
-        <div className="sidebar__tree">
-          {sidebarTab === "clusters" ? (
-            clusterTree.map((cluster) => {
-              const clusterOpen = expandedClusters[cluster.id] ?? false;
-              const namespacesOpen = clusterOpen && cluster.namespaces.length > 0;
+          {primaryCluster && (
+            <div className="tree-children">
+              <button
+                className={`tree-row tree-row--cluster ${
+                  selectedClusterId === primaryCluster.id ? "tree-row--current" : ""
+                }`}
+                type="button"
+                aria-expanded={expandedClusters[primaryCluster.id] ?? false}
+                onClick={() => toggleCluster(primaryCluster.id)}
+              >
+                <Icon
+                  name={
+                    expandedClusters[primaryCluster.id] ? "chevron-down" : "chevron-right"
+                  }
+                  className="tree-row__chevron"
+                />
+                <Icon name="cluster" className="tree-row__kube-icon" />
+                <span className="tree-row__label">{primaryCluster.name}</span>
+                <span className="tree-status tree-status--green" />
+              </button>
 
-              return (
-                <div key={cluster.id} className="tree-block">
-                  <button
-                    className={`tree-row tree-row--cluster ${
-                      selectedClusterId === cluster.id ? "tree-row--active" : ""
-                    }`}
-                    type="button"
-                    onClick={() => toggleExpanded(setExpandedClusters, cluster.id)}
-                  >
-                    <Icon
-                      name={
-                        cluster.namespaces.length > 0 && clusterOpen
-                          ? "chevron-down"
-                          : "chevron-right"
-                      }
-                    />
-                    <span className={`status-dot status-dot--${cluster.status}`} />
-                    <span>{cluster.name}</span>
-                  </button>
+              {expandedClusters[primaryCluster.id] && (
+                <div className="tree-children">
+                  {primaryCluster.namespaces.map((namespace) => {
+                    const namespaceOpen = expandedNamespaces[namespace.id] ?? false;
+                    const isActiveNamespace = selectedNamespaceId === namespace.id;
 
-                  {namespacesOpen && (
-                    <div className="tree-indent">
-                      <div className="tree-row tree-row--section">
-                        <Icon name="chevron-down" />
-                        <Icon name="folder" />
-                        <span>Namespaces</span>
+                    return (
+                      <div key={namespace.id}>
+                        <button
+                          className={`tree-row tree-row--namespace ${
+                            isActiveNamespace ? "tree-row--current" : ""
+                          }`}
+                          type="button"
+                          aria-expanded={namespaceOpen}
+                          onClick={() => toggleNamespace(namespace.id)}
+                        >
+                          <Icon
+                            name={namespaceOpen ? "chevron-down" : "chevron-right"}
+                            className="tree-row__chevron"
+                          />
+                          <Icon name="namespace" className="tree-row__namespace-icon" />
+                          <span className="tree-row__label">{namespace.name}</span>
+                          {isActiveNamespace && <span className="tree-badge">ns</span>}
+                        </button>
+
+                        {namespaceOpen && (
+                          <div className="tree-children">
+                            <button
+                              className="tree-row tree-row--resource"
+                              type="button"
+                              aria-expanded={podsOpen}
+                              onClick={() => setPodsOpen((current) => !current)}
+                            >
+                              <Icon
+                                name={podsOpen ? "chevron-down" : "chevron-right"}
+                                className="tree-row__chevron"
+                              />
+                              <Icon name="boxes" className="tree-row__resource-icon" />
+                              <span className="tree-row__label">Pods</span>
+                            </button>
+
+                            {podsOpen && namespace.pods.length > 0 && (
+                              <div className="tree-children tree-children--pods">
+                                {namespace.pods.map((pod) => {
+                                  const isSelected = selectedPodId === pod.id;
+                                  const isWarning = pod.name.includes("redis");
+
+                                  return (
+                                    <button
+                                      key={pod.id}
+                                      className={`tree-row tree-row--pod ${
+                                        isSelected ? "tree-row--active" : ""
+                                      }`}
+                                      type="button"
+                                      onClick={() =>
+                                        onSelectLocation({
+                                          clusterId: primaryCluster.id,
+                                          namespaceId: namespace.id,
+                                          podId: pod.id,
+                                          container: pod.containers[0],
+                                        })
+                                      }
+                                    >
+                                      <span
+                                        className={`tree-status ${
+                                          isWarning
+                                            ? "tree-status--amber"
+                                            : "tree-status--green"
+                                        }`}
+                                      />
+                                      <span className="tree-row__label">{pod.name}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-
-                      <div className="tree-indent">
-                        {cluster.namespaces.map((namespace) => {
-                          const namespaceOpen = expandedNamespaces[namespace.id] ?? false;
-                          const isNamespaceActive = selectedNamespaceId === namespace.id;
-
-                          return (
-                            <div key={namespace.id}>
-                              <button
-                                className={`tree-row ${isNamespaceActive ? "tree-row--active" : ""}`}
-                                type="button"
-                                onClick={() => {
-                                  if (namespace.pods.length > 0) {
-                                    toggleExpanded(setExpandedNamespaces, namespace.id);
-                                  }
-                                }}
-                              >
-                                <Icon
-                                  name={
-                                    namespace.pods.length > 0 && namespaceOpen
-                                      ? "chevron-down"
-                                      : "chevron-right"
-                                  }
-                                />
-                                <Icon name="folder" />
-                                <span>{namespace.name}</span>
-                              </button>
-
-                              {namespaceOpen && namespace.pods.length > 0 && (
-                                <div className="tree-indent">
-                                  <div className="tree-row tree-row--section">
-                                    <Icon name="chevron-down" />
-                                    <Icon name="folder" />
-                                    <span>Pods</span>
-                                  </div>
-
-                                  <div className="tree-indent">
-                                    {namespace.pods.map((pod) => {
-                                      const podOpen = expandedPods[pod.id] ?? false;
-                                      const isPodActive = selectedPodId === pod.id;
-
-                                      return (
-                                        <div key={pod.id}>
-                                          <button
-                                            className={`tree-row ${isPodActive ? "tree-row--active" : ""}`}
-                                            type="button"
-                                            onClick={() => {
-                                              toggleExpanded(setExpandedPods, pod.id);
-                                              onSelectLocation({
-                                                clusterId: cluster.id,
-                                                namespaceId: namespace.id,
-                                                podId: pod.id,
-                                                container: pod.containers[0],
-                                              });
-                                            }}
-                                          >
-                                            <Icon
-                                              name={
-                                                pod.containers.length > 0 && podOpen
-                                                  ? "chevron-down"
-                                                  : "chevron-right"
-                                              }
-                                            />
-                                            <span className="status-dot status-dot--connected" />
-                                            <span>{pod.name}</span>
-                                          </button>
-
-                                          {podOpen && pod.containers.length > 0 && (
-                                            <div className="tree-indent">
-                                              {pod.containers.map((container) => (
-                                                <button
-                                                  key={container}
-                                                  className={`tree-row ${
-                                                    isPodActive && selectedContainer === container
-                                                      ? "tree-row--active"
-                                                      : ""
-                                                  }`}
-                                                  type="button"
-                                                  onClick={() =>
-                                                    onSelectLocation({
-                                                      clusterId: cluster.id,
-                                                      namespaceId: namespace.id,
-                                                      podId: pod.id,
-                                                      container,
-                                                    })
-                                                  }
-                                                >
-                                                  <Icon name="terminal" />
-                                                  <span>{container}</span>
-                                                </button>
-                                              ))}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-              );
-            })
-          ) : (
-            <div className="sidebar__empty">
-              <h3>{activeTab?.label}</h3>
-              <p>
-                This panel is ready for the next feature pass. We can wire search,
-                resource browsing, or settings into the same shell now.
-              </p>
+              )}
+            </div>
+          )}
+
+          {secondaryCluster && (
+            <div className="tree-children">
+              <button
+                className="tree-row tree-row--cluster tree-row--muted"
+                type="button"
+                aria-expanded={expandedClusters[secondaryCluster.id] ?? false}
+                onClick={() => toggleCluster(secondaryCluster.id)}
+              >
+                <Icon name="chevron-right" className="tree-row__chevron" />
+                <Icon name="cluster" className="tree-row__kube-icon" />
+                <span className="tree-row__label">{secondaryCluster.name}</span>
+                <span className="tree-status tree-status--amber" />
+              </button>
             </div>
           )}
         </div>
+      </div>
 
-        <div className="connections">
-          <div className="sidebar__header sidebar__header--secondary">
-            <span>Connections</span>
-          </div>
-
-          <div className="connections__list">
-            {connections.map((connection) => (
-              <article key={connection.id} className="connection-card">
-                <h4>{connection.name}</h4>
-                <p>{connection.account}</p>
-                <p>User: {connection.user}</p>
-              </article>
-            ))}
-          </div>
+      <footer className="sidebar__footer">
+        <div className="sidebar__transfer">
+          <Icon name="transfer" />
+          <span>2 transfers</span>
         </div>
-      </section>
-    </>
+        <span className="sidebar__mode">active</span>
+      </footer>
+
+      <div className="sidebar__tabs" aria-hidden="true">
+        {railItems.map((item) => (
+          <button
+            key={item.id}
+            className={`sidebar__tab ${sidebarTab === item.id ? "is-active" : ""}`}
+            type="button"
+            title={item.label}
+            onClick={() => onSidebarTabChange(item.id)}
+          >
+            <Icon name={item.icon} />
+          </button>
+        ))}
+      </div>
+      <span className="sidebar__connection">{activeConnection?.user}</span>
+    </aside>
   );
 }
