@@ -1,0 +1,5 @@
+server:
+  port: 8080
+
+kubernetes:
+  kubeconfig: ""   # empty = use default ~/.kube/config later
