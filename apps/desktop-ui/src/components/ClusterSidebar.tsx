@@ -2,7 +2,12 @@ import { useState } from "react";
 import type { ClusterTree, ConnectionEntry } from "../data/mockData";
 import { Icon, type IconName } from "./Icon";
 
-export type SidebarTab = "clusters" | "search" | "network" | "resources" | "settings";
+export type SidebarTab =
+  | "clusters"
+  | "search"
+  | "network"
+  | "resources"
+  | "settings";
 
 export function ClusterSidebar({
   sidebarTab,
@@ -31,10 +36,14 @@ export function ClusterSidebar({
     container: string;
   }) => void;
 }) {
-  const [expandedClusters, setExpandedClusters] = useState<Record<string, boolean>>({
+  const [expandedClusters, setExpandedClusters] = useState<
+    Record<string, boolean>
+  >({
     "cluster-prod": true,
   });
-  const [expandedNamespaces, setExpandedNamespaces] = useState<Record<string, boolean>>({
+  const [expandedNamespaces, setExpandedNamespaces] = useState<
+    Record<string, boolean>
+  >({
     "ns-payments": true,
   });
   const [podsOpen, setPodsOpen] = useState(true);
@@ -42,7 +51,9 @@ export function ClusterSidebar({
   const primaryCluster = clusterTree[0];
   const secondaryCluster = clusterTree[1];
   const activeConnection =
-    connections.find((connection) => connection.name === primaryCluster?.name) ?? connections[0];
+    connections.find(
+      (connection) => connection.name === primaryCluster?.name,
+    ) ?? connections[0];
 
   function toggleCluster(id: string) {
     setExpandedClusters((current) => ({ ...current, [id]: !current[id] }));
@@ -59,7 +70,11 @@ export function ClusterSidebar({
           <Icon name="cluster" className="sidebar__brand-icon" />
           <span>Kube Explorer</span>
         </div>
-        <button className="icon-button icon-button--quiet" type="button" title="More actions">
+        <button
+          className="icon-button icon-button--quiet"
+          type="button"
+          title="More actions"
+        >
           <Icon name="more" />
         </button>
       </header>
@@ -83,7 +98,9 @@ export function ClusterSidebar({
             <div className="tree-children">
               <button
                 className={`tree-row tree-row--cluster ${
-                  selectedClusterId === primaryCluster.id ? "tree-row--current" : ""
+                  selectedClusterId === primaryCluster.id
+                    ? "tree-row--current"
+                    : ""
                 }`}
                 type="button"
                 aria-expanded={expandedClusters[primaryCluster.id] ?? false}
@@ -91,7 +108,9 @@ export function ClusterSidebar({
               >
                 <Icon
                   name={
-                    expandedClusters[primaryCluster.id] ? "chevron-down" : "chevron-right"
+                    expandedClusters[primaryCluster.id]
+                      ? "chevron-down"
+                      : "chevron-right"
                   }
                   className="tree-row__chevron"
                 />
@@ -103,8 +122,10 @@ export function ClusterSidebar({
               {expandedClusters[primaryCluster.id] && (
                 <div className="tree-children">
                   {primaryCluster.namespaces.map((namespace) => {
-                    const namespaceOpen = expandedNamespaces[namespace.id] ?? false;
-                    const isActiveNamespace = selectedNamespaceId === namespace.id;
+                    const namespaceOpen =
+                      expandedNamespaces[namespace.id] ?? false;
+                    const isActiveNamespace =
+                      selectedNamespaceId === namespace.id;
 
                     return (
                       <div key={namespace.id}>
@@ -117,12 +138,21 @@ export function ClusterSidebar({
                           onClick={() => toggleNamespace(namespace.id)}
                         >
                           <Icon
-                            name={namespaceOpen ? "chevron-down" : "chevron-right"}
+                            name={
+                              namespaceOpen ? "chevron-down" : "chevron-right"
+                            }
                             className="tree-row__chevron"
                           />
-                          <Icon name="namespace" className="tree-row__namespace-icon" />
-                          <span className="tree-row__label">{namespace.name}</span>
-                          {isActiveNamespace && <span className="tree-badge">ns</span>}
+                          <Icon
+                            name="namespace"
+                            className="tree-row__namespace-icon"
+                          />
+                          <span className="tree-row__label">
+                            {namespace.name}
+                          </span>
+                          {isActiveNamespace && (
+                            <span className="tree-badge">ns</span>
+                          )}
                         </button>
 
                         {namespaceOpen && (
@@ -134,10 +164,15 @@ export function ClusterSidebar({
                               onClick={() => setPodsOpen((current) => !current)}
                             >
                               <Icon
-                                name={podsOpen ? "chevron-down" : "chevron-right"}
+                                name={
+                                  podsOpen ? "chevron-down" : "chevron-right"
+                                }
                                 className="tree-row__chevron"
                               />
-                              <Icon name="boxes" className="tree-row__resource-icon" />
+                              <Icon
+                                name="boxes"
+                                className="tree-row__resource-icon"
+                              />
                               <span className="tree-row__label">Pods</span>
                             </button>
 
@@ -170,7 +205,9 @@ export function ClusterSidebar({
                                             : "tree-status--green"
                                         }`}
                                       />
-                                      <span className="tree-row__label">{pod.name}</span>
+                                      <span className="tree-row__label">
+                                        {pod.name}
+                                      </span>
                                     </button>
                                   );
                                 })}
